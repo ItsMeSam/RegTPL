@@ -101,14 +101,25 @@ class RegTPL
 
 		$contents = file_get_contents($this->directory . $filename);
 
+		//.. Parse comments
+		$contents = preg_replace("/{{\*(.*)\*}}/", '', $contents);
+
+
 		//.. Parse foreach loop
 		preg_match_all("/{{- (.*) -}}/", $contents, $var);
 		foreach($var[1] as $v)
 		{
-			$contents = preg_replace("/{{- (.*) -}}/", '<?php foreach($this->variables[\'' . $v . '\'] as $value): ?>', $contents, 1);
+			$contents = preg_replace("/{{- (.*) -}}/", '<?php foreach($this->variables[\'' . $v . '\'] as $value): ?>', $contents, 1);;
 		}
 
 		$contents = preg_replace("/{{-end-}}/", '<?php endforeach; ?>', $contents);
+
+		//.. Parse foreach loop variables
+		preg_match_all("/{{ -(.*)- }}/", $contents, $var);
+		foreach($var[1] as $v)
+		{
+			$contents = preg_replace("/{{ -(.*)- }}/", '<?php echo $' . $v . '; ?>', $contents);
+		}
 
 		//.. Parse variables
 		preg_match_all("/{{ (.*) }}/", $contents, $var);
@@ -123,6 +134,16 @@ class RegTPL
 				trigger_error('RegTPL error: variable used in template file doesn\'t exist');
 			}
 		}
+
+		//.. Parse foreach loop
+		preg_match_all("/{{- (.*) -}}/", $contents, $var);
+		foreach($var[1] as $v)
+		{
+			$contents = preg_replace("/{{- (.*) -}}/", '<?php foreach($this->variables[\'' . $v . '\'] as $this->variables[\'value\']): ?>', $contents, 1);;
+		}
+
+		$contents = preg_replace("/{{-end-}}/", '<?php endforeach; unset($this->variables[\'value\']); ?>', $contents);
+
 
 		//.. Parse constants
 		preg_match_all("/{{# (.*) #}}/", $contents, $constants);
